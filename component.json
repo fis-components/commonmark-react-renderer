@@ -1,0 +1,12 @@
+{
+    "name": "commonmark-react-renderer",
+    "description": "React renderer for CommonMark (rationalized Markdown)",
+    "repos": "https://github.com/git@github.com:rexxars/commonmark-react-renderer.git",
+    "main": "src/commonmark-react-renderer.js",
+    "tag": "master",
+    "reposType": "npm",
+    "dependencies": {
+        "react": "^0.13.3"
+    },
+    "version": "1.0.2"
+}
