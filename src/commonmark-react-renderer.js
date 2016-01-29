@@ -3,10 +3,16 @@
 var React = require('react');
 
 var allTypes = [
-    'Html', 'HtmlBlock', 'Text', 'Paragraph', 'Header', 'Softbreak', 'Hardbreak',
+    'HtmlInline', 'HtmlBlock', 'Text', 'Paragraph', 'Heading', 'Softbreak', 'Hardbreak',
     'Link', 'Image', 'Emph', 'Code', 'CodeBlock', 'BlockQuote', 'List', 'Item',
-    'Strong', 'HorizontalRule', 'Document'
+    'Strong', 'ThematicBreak', 'Document'
 ];
+
+var deprecated = {
+    Html: 'HtmlInline',
+    Header: 'Heading',
+    HorizontalRule: 'ThematicBreak'
+};
 
 function tag(node, name, attrs, children) {
     node.react = {
@@ -54,12 +60,16 @@ function renderNodes(block) {
         this.softBreak
     );
 
-    var e, node, entering, leaving, attrs, doc;
+    var e, node, entering, leaving, attrs, doc, key;
     while ((e = walker.next())) {
         entering = e.entering;
         leaving = !entering;
         node = e.node;
-        attrs = {};
+        key = !e.node.prev ? 0 : e.node.prev.reactKey + 1;
+        attrs = { key: key };
+
+        // Assigning a key to the node
+        node.reactKey = key;
 
         // If we have not assigned a document yet, assume the current node is just that
         if (!doc) {
@@ -113,7 +123,7 @@ function renderNodes(block) {
 
         // Entering a new node
         switch (node.type) {
-            case 'Html':
+            case 'HtmlInline':
             case 'HtmlBlock':
                 if (escapeHtml) {
                     addChild(node, node.literal);
@@ -123,7 +133,7 @@ function renderNodes(block) {
                     };
 
                     addChild(node, createElement(
-                        node.type === 'Html' ? 'span' : 'div',
+                        node.type === 'HtmlInline' ? 'span' : 'div',
                         attrs
                     ));
                 }
@@ -134,7 +144,7 @@ function renderNodes(block) {
             case 'Paragraph':
                 tag(node, 'p', attrs);
                 break;
-            case 'Header':
+            case 'Heading':
                 tag(node, 'h' + node.level, attrs);
                 break;
             case 'Softbreak':
@@ -192,7 +202,7 @@ function renderNodes(block) {
             case 'Item':
                 tag(node, 'li', attrs);
                 break;
-            case 'HorizontalRule':
+            case 'ThematicBreak':
                 addChild(node, createElement('hr', attrs));
                 break;
             case 'Document':
@@ -203,6 +213,14 @@ function renderNodes(block) {
     }
 
     return doc.react.children;
+}
+
+function replaceDeprecatedType(type) {
+    if (deprecated[type]) {
+        return deprecated[type];
+    }
+
+    return type;
 }
 
 function ReactRenderer(options) {
@@ -224,10 +242,11 @@ function ReactRenderer(options) {
         throw new Error('`allowNode` must be a function');
     }
 
-    var allowedTypes = opts.allowedTypes || allTypes;
+    var allowedTypes = (opts.allowedTypes || allTypes).map(replaceDeprecatedType);
     if (opts.disallowedTypes) {
+        var disallowed = opts.disallowedTypes.map(replaceDeprecatedType);
         allowedTypes = allowedTypes.filter(function(type) {
-            return opts.disallowedTypes.indexOf(type) === -1;
+            return disallowed.indexOf(type) === -1;
         });
     }
 
